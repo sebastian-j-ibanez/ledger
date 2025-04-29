@@ -5,13 +5,110 @@ import (
 	"testing"
 )
 
-func TestNewLedger_String(t *testing.T) {
+// Test Ledger.AddNode.
+// Creates a Ledger with 1 Node.
+// Passes if there are no errors creating the Node.
+func TestNewLedger_ByteString(t *testing.T) {
 	testLedger := NewLedger()
 	data := []byte("hello world")
 	if err := testLedger.AddNode(data); err != nil {
-		t.Errorf("unexpected error adding node to ledger: %v", err)
+		t.Errorf("error adding node to ledger: %v", err)
+		t.Logf("%+v", testLedger.nodes[0])
 	}
-	t.Logf("%+v", testLedger.nodes[0])
+}
+
+// Tests Ledger.ValidateHash
+// using a mock Node.
+// Expects the function to return true.
+func TestValidateHash(t *testing.T) {
+	testData := []byte("sample payload")
+
+	n, err := NewNode(0, nil, testData)
+	if err != nil {
+		t.Fatalf("error creating node: %s", err.Error())
+	}
+
+	valid, err := n.ValidateHash()
+	if err != nil {
+		t.Fatalf("error validating hash: %s", err.Error())
+	}
+
+	if !valid {
+		t.Fatal("node hash is invalid")
+	}
+}
+
+// Tests Ledger.ValidateHash
+// using a mock Node.
+// Alters Node before calling ValidateHash.
+// Expects the function to return false.
+func TestValidateHash_InvalidHash(t *testing.T) {
+	testData := []byte("sample payload")
+
+	n, err := NewNode(0, nil, testData)
+	if err != nil {
+		t.Fatalf("error creating node: %s", err.Error())
+	}
+
+	//
+	n.hash = append(n.hash, '0')
+
+	valid, err := n.ValidateHash()
+	if err != nil {
+		t.Fatalf("error validating hash: %s", err.Error())
+	}
+
+	if valid {
+		t.Fatal("node hash is valid")
+	}
+}
+
+// Tests Ledger.ValidateNode
+// using a new Ledger with 1 mock Node.
+// Expects the function to return true.
+func TestValidateNode(t *testing.T) {
+	testData := []byte("sample payload")
+
+	l := NewLedger()
+	err := l.AddNode(testData)
+	if err != nil {
+		t.Fatalf("error adding node: %s", err.Error())
+	}
+
+	valid, err := l.ValidateNode(0)
+	if err != nil {
+		t.Fatalf("error validating node: %s,", err.Error())
+	}
+
+	if !valid {
+		t.Fatal("node 0 hash is invalid")
+	}
+}
+
+// Tests Ledger.ValidateNode
+// using a new Ledger with 1 mock Node.
+// Alters Node before calling ValidateNode.
+// Expects the function to return false.
+func TestValidateNode_InvalidHash(t *testing.T) {
+	testData := []byte("sample payload")
+
+	l := NewLedger()
+	err := l.AddNode(testData)
+	if err != nil {
+		t.Fatalf("error adding node: %s", err.Error())
+	}
+
+	// Change data to alter hash
+	l.nodes[0].data = []byte("not sample payload")
+
+	valid, err := l.ValidateNode(0)
+	if err != nil {
+		t.Fatalf("error validating node: %s,", err.Error())
+	}
+
+	if valid {
+		t.Fatal("node 0 hash is valid")
+	}
 }
 
 // TestNewNode checks basic creation of a Node
@@ -21,7 +118,7 @@ func TestNewNode(t *testing.T) {
 
 	node, err := NewNode(1, prevHash, data)
 	if err != nil {
-		t.Fatalf("unexpected error creating node: %v", err)
+		t.Fatalf("error creating node: %v", err)
 	}
 
 	if node.id != 1 {
@@ -49,12 +146,12 @@ func TestComputeHash(t *testing.T) {
 
 	node, err := NewNode(42, prevHash, data)
 	if err != nil {
-		t.Fatalf("unexpected error creating node: %v", err)
+		t.Fatalf("error creating node: %v", err)
 	}
 
 	rehash, err := node.ComputeHash()
 	if err != nil {
-		t.Fatalf("unexpected error recomputing hash: %v", err)
+		t.Fatalf("error recomputing hash: %v", err)
 	}
 
 	if !bytes.Equal(node.hash, rehash) {
@@ -67,7 +164,7 @@ func TestGetData(t *testing.T) {
 	data := []byte("sample payload")
 	node, err := NewNode(3, nil, data)
 	if err != nil {
-		t.Fatalf("unexpected error creating node: %v", err)
+		t.Fatalf("error creating node: %v", err)
 	}
 
 	got := node.GetData()
@@ -76,6 +173,9 @@ func TestGetData(t *testing.T) {
 	}
 }
 
+// Tests EncryptData and DecryptData
+// Encodes a test struct, then decodes it.
+// Passes if decoded struct matches the original.
 func TestEncryptDecryptData(t *testing.T) {
 	type testType struct {
 		Id  byte
