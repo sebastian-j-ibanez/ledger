@@ -6,11 +6,6 @@
 // This library does not contain any external dependencies.
 package ledger
 
-import (
-	"errors"
-	"fmt"
-)
-
 // The Ledger is a data structure that stores data with a hash.
 // Each element in the Ledger can be cryptographically validated.
 type Ledger struct {
@@ -34,43 +29,18 @@ func (l *Ledger) AddNode(data []byte) error {
 		prevHash = l.nodes[len(l.nodes)-1].hash
 	}
 
-	node, err := NewNode(id, prevHash, data)
-	if err != nil {
-		return err
-	}
-
+	node := newNode(id, prevHash, data)
 	l.nodes = append(l.nodes, node)
 	return nil
 }
 
-// Validate a Node's hash.
-// Return error if id is not valid.
-func (l *Ledger) ValidateNode(id uint64) (bool, error) {
-	// THIS WILL NOT WORK IF ELEMENTS ARE REMOVED (sharding)
-	if id >= uint64(len(l.nodes)) {
-		return false, errors.New("id is out of bounds")
-	}
-
-	node := l.nodes[id]
-	valid, err := node.ValidateHash()
-	if err != nil {
-		msg := fmt.Sprintf("node %d: unable to validate hash: %s", node.id, err.Error())
-		return false, errors.New(msg)
-	}
-
-	return valid, nil
-}
-
-// Recompute hash of each Node in the Ledger.
-// Return error if there is issue computing a hash.
-func (l *Ledger) RecomputeHashes() error {
+// Check that each node has a valid hash.
+func (l *Ledger) ValidateLedger() (bool, error) {
 	for _, node := range l.nodes {
-		var err error
-		if node.hash, err = node.ComputeHash(); err != nil {
-			msg := fmt.Sprintf("error recomputing hashes: node %d: %s", node.id, err.Error())
-			return errors.New(msg)
+		if !node.ValidHash() {
+			return false, nil
 		}
 	}
 
-	return nil
+	return true, nil
 }

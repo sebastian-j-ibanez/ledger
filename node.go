@@ -3,8 +3,7 @@ package ledger
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
-	"errors"
+	"encoding/gob"
 	"fmt"
 	"slices"
 	"time"
@@ -22,7 +21,7 @@ type Node struct {
 
 // Create a new Node.
 // Returns an error if there is an issue computing the Node hash.
-func NewNode(id uint64, prevHash []byte, data []byte) (Node, error) {
+func newNode(id uint64, prevHash []byte, data []byte) Node {
 	n := Node{
 		id:        id,
 		timestamp: time.Now(),
@@ -30,60 +29,33 @@ func NewNode(id uint64, prevHash []byte, data []byte) (Node, error) {
 		prevHash:  prevHash,
 		data:      data,
 	}
-
-	var err error
-	n.hash, err = n.ComputeHash()
-	if err != nil {
-		msg := fmt.Sprintf("unable to create node %d: %s", n.id, err.Error())
-		return Node{}, errors.New(msg)
-	}
-
-	return n, nil
+	n.hash = n.computeHash()
+	return n
 }
 
 // Compute a SHA256 hash of the Node.
 // Returns error if there is an issue serializing Node fields.
-func (n *Node) ComputeHash() ([]byte, error) {
+func (n *Node) computeHash() []byte {
+	// Encode node data to gob
+	var encBuffer bytes.Buffer
+	encoder := gob.NewEncoder(&encBuffer)
+	encoder.Encode(n.id)
+	encoder.Encode(n.timestamp.UnixNano())
+	encoder.Encode(n.prevHash)
+	encoder.Encode(n.data)
+
+	// Make hash from the encoded gob data.
 	hash := sha256.New()
-	var buf bytes.Buffer
-
-	// Write node fields to binary buffer.
-	if err := binary.Write(&buf, binary.LittleEndian, n.id); err != nil {
-		msg := fmt.Sprintf("unable to encode id as binary: %s", err.Error())
-		return nil, errors.New(msg)
-	}
-
-	if err := binary.Write(&buf, binary.LittleEndian, n.timestamp.UnixNano()); err != nil {
-		msg := fmt.Sprintf("unable to encode timestamp as binary: %s", err.Error())
-		return nil, errors.New(msg)
-	}
-
-	if err := binary.Write(&buf, binary.LittleEndian, n.prevHash); err != nil {
-		msg := fmt.Sprintf("unable to encode previous hash as binary: %s", err.Error())
-		return nil, errors.New(msg)
-	}
-
-	if _, err := buf.Write(n.data); err != nil {
-		msg := fmt.Sprintf("unable to encode data as binary: %s", err.Error())
-		return nil, errors.New(msg)
-	}
-
-	// Make hash from the binary buffer.
-	hash.Write(buf.Bytes())
-	return hash.Sum(nil), nil
+	hash.Write(encBuffer.Bytes())
+	return hash.Sum(nil)
 }
 
 // Validate a Node's hash.
 // Returns an error if there is an issue computing the hash.
-func (n *Node) ValidateHash() (bool, error) {
-	currentHash, err := n.ComputeHash()
-	if err != nil {
-		msg := fmt.Sprintf("unable to compute hash: %s", err.Error())
-		return false, errors.New(msg)
-	}
-	valid := slices.Compare(n.hash, currentHash) == 0
-
-	return valid, nil
+func (n *Node) ValidHash() bool {
+	currentHash := n.computeHash()
+	validHash := slices.Compare(n.hash, currentHash) == 0
+	return validHash
 }
 
 // Get the encoded byte slice representation of the Node data.

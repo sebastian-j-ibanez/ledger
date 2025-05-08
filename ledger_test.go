@@ -22,18 +22,8 @@ func TestNewLedger_ByteString(t *testing.T) {
 // Expects the function to return true.
 func TestValidateHash(t *testing.T) {
 	testData := []byte("sample payload")
-
-	n, err := NewNode(0, nil, testData)
-	if err != nil {
-		t.Fatalf("error creating node: %s", err.Error())
-	}
-
-	valid, err := n.ValidateHash()
-	if err != nil {
-		t.Fatalf("error validating hash: %s", err.Error())
-	}
-
-	if !valid {
+	n := newNode(0, nil, testData)
+	if !n.ValidHash() {
 		t.Fatal("node hash is invalid")
 	}
 }
@@ -44,70 +34,10 @@ func TestValidateHash(t *testing.T) {
 // Expects the function to return false.
 func TestValidateHash_InvalidHash(t *testing.T) {
 	testData := []byte("sample payload")
-
-	n, err := NewNode(0, nil, testData)
-	if err != nil {
-		t.Fatalf("error creating node: %s", err.Error())
-	}
-
-	//
+	n := newNode(0, nil, testData)
 	n.hash = append(n.hash, '0')
-
-	valid, err := n.ValidateHash()
-	if err != nil {
-		t.Fatalf("error validating hash: %s", err.Error())
-	}
-
-	if valid {
+	if n.ValidHash() {
 		t.Fatal("node hash is valid")
-	}
-}
-
-// Tests Ledger.ValidateNode
-// using a new Ledger with 1 mock Node.
-// Expects the function to return true.
-func TestValidateNode(t *testing.T) {
-	testData := []byte("sample payload")
-
-	l := NewLedger()
-	err := l.AddNode(testData)
-	if err != nil {
-		t.Fatalf("error adding node: %s", err.Error())
-	}
-
-	valid, err := l.ValidateNode(0)
-	if err != nil {
-		t.Fatalf("error validating node: %s,", err.Error())
-	}
-
-	if !valid {
-		t.Fatal("node 0 hash is invalid")
-	}
-}
-
-// Tests Ledger.ValidateNode
-// using a new Ledger with 1 mock Node.
-// Alters Node before calling ValidateNode.
-// Expects the function to return false.
-func TestValidateNode_InvalidHash(t *testing.T) {
-	testData := []byte("sample payload")
-
-	l := NewLedger()
-	err := l.AddNode(testData)
-	if err != nil {
-		t.Fatalf("error adding node: %s", err.Error())
-	}
-
-	// Change data to alter hash
-	l.nodes[0].data = []byte("not sample payload")
-
-	valid, err := l.ValidateNode(0)
-	if err != nil {
-		t.Fatalf("error validating node: %s,", err.Error())
-	}
-
-	if valid {
-		t.Fatal("node 0 hash is valid")
 	}
 }
 
@@ -116,10 +46,7 @@ func TestNewNode(t *testing.T) {
 	data := []byte("hello world")
 	prevHash := []byte{}
 
-	node, err := NewNode(1, prevHash, data)
-	if err != nil {
-		t.Fatalf("error creating node: %v", err)
-	}
+	node := newNode(1, prevHash, data)
 
 	if node.id != 1 {
 		t.Errorf("expected id 1, got %d", node.id)
@@ -141,19 +68,10 @@ func TestNewNode(t *testing.T) {
 // TestComputeHash checks that ComputeHash returns consistent results
 func TestComputeHash(t *testing.T) {
 	data := []byte("test data")
-	// prevHash := []byte("previous hash")
 	prevHash := []byte(nil)
 
-	node, err := NewNode(42, prevHash, data)
-	if err != nil {
-		t.Fatalf("error creating node: %v", err)
-	}
-
-	rehash, err := node.ComputeHash()
-	if err != nil {
-		t.Fatalf("error recomputing hash: %v", err)
-	}
-
+	node := newNode(42, prevHash, data)
+	rehash := node.computeHash()
 	if !bytes.Equal(node.hash, rehash) {
 		t.Errorf("rehash mismatch: expected %x, got %x", node.hash, rehash)
 	}
@@ -162,11 +80,7 @@ func TestComputeHash(t *testing.T) {
 // TestGetData checks that GetData returns the correct byte slice
 func TestGetData(t *testing.T) {
 	data := []byte("sample payload")
-	node, err := NewNode(3, nil, data)
-	if err != nil {
-		t.Fatalf("error creating node: %v", err)
-	}
-
+	node := newNode(3, nil, data)
 	got := node.GetData()
 	if !bytes.Equal(data, got) {
 		t.Errorf("GetData() mismatch: expected %v, got %v", data, got)
