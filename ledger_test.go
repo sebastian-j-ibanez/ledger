@@ -35,7 +35,7 @@ func TestValidateHash(t *testing.T) {
 func TestValidateHash_InvalidHash(t *testing.T) {
 	testData := []byte("sample payload")
 	n := newNode(0, nil, testData)
-	n.hash = append(n.hash, '0')
+	n.Hash = append(n.Hash, '0')
 	if n.ValidHash() {
 		t.Fatal("node hash is valid")
 	}
@@ -48,20 +48,20 @@ func TestNewNode(t *testing.T) {
 
 	node := newNode(1, prevHash, data)
 
-	if node.id != 1 {
-		t.Errorf("expected id 1, got %d", node.id)
+	if node.Id != 1 {
+		t.Errorf("expected id 1, got %d", node.Id)
 	}
 
-	if node.data == nil || !bytes.Equal(node.data, data) {
-		t.Errorf("data mismatch: expected %v, got %v", data, node.data)
+	if node.Data == nil || !bytes.Equal(node.Data, data) {
+		t.Errorf("data mismatch: expected %v, got %v", data, node.Data)
 	}
 
-	if node.prevHash == nil || len(node.prevHash) != 0 {
-		t.Errorf("expected empty prevHash, got %v", node.prevHash)
+	if node.PrevHash == nil || len(node.PrevHash) != 0 {
+		t.Errorf("expected empty prevHash, got %v", node.PrevHash)
 	}
 
-	if node.hash == nil || len(node.hash) != 32 {
-		t.Errorf("expected SHA-256 hash (32 bytes), got length %d", len(node.hash))
+	if node.Hash == nil || len(node.Hash) != 32 {
+		t.Errorf("expected SHA-256 hash (32 bytes), got length %d", len(node.Hash))
 	}
 }
 
@@ -72,8 +72,8 @@ func TestComputeHash(t *testing.T) {
 
 	node := newNode(42, prevHash, data)
 	rehash := node.computeHash()
-	if !bytes.Equal(node.hash, rehash) {
-		t.Errorf("rehash mismatch: expected %x, got %x", node.hash, rehash)
+	if !bytes.Equal(node.Hash, rehash) {
+		t.Errorf("rehash mismatch: expected %x, got %x", node.Hash, rehash)
 	}
 }
 

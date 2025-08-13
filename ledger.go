@@ -26,7 +26,7 @@ func (l *Ledger) AddNode(data []byte) error {
 
 	prevHash := []byte(nil)
 	if len(l.nodes) > 1 {
-		prevHash = l.nodes[len(l.nodes)-1].hash
+		prevHash = l.nodes[len(l.nodes)-1].Hash
 	}
 
 	node := newNode(id, prevHash, data)
