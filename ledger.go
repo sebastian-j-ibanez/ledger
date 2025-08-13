@@ -44,3 +44,16 @@ func (l *Ledger) ValidateLedger() (bool, error) {
 
 	return true, nil
 }
+
+// Get all Nodes.
+func (l *Ledger) GetNodes() []Node {
+	return l.nodes
+}
+
+// Get Node at ith index.
+func (l *Ledger) GetNode(index int) *Node {
+	if len(l.nodes) <= index && index >= 0 {
+		return &l.nodes[index]
+	}
+	return nil
+}
